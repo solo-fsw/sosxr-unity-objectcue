@@ -1,4 +1,3 @@
-using SOSXR;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Events;
@@ -278,4 +277,3 @@ namespace SOSXR.ObjectCue
         }
     }
 }
-
