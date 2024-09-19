@@ -9,3 +9,8 @@
 2. Open the Package Manager window.
 3. Click on the `+` button and select `Add package from git URL...`.
 4. Paste the URL of this repo into the text field and press `Add`.
+
+
+## Bugs
+
+Some bugs present
