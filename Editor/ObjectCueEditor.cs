@@ -1,4 +1,4 @@
-using UnityEditor;
+/*using UnityEditor;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -276,4 +276,4 @@ namespace SOSXR.ObjectCue
             CreatePropertyField(nameof(_target.EventOnStop));
         }
     }
-}
+}*/

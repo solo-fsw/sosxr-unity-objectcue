@@ -1,16 +1,12 @@
-using System;
-using DG.Tweening;
-
+/*using System;
+using System.Collections.Generic;
+using Tweens;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.Serialization;
 
 
 namespace SOSXR.ObjectCue
 {
-
-
-
     [Serializable]
     public class ObjectCue : MonoBehaviour
     {
@@ -121,7 +117,8 @@ namespace SOSXR.ObjectCue
 
         private int _baseColorID = Shader.PropertyToID("_BaseColor");
 
-        private Sequence _cueSequence;
+        //private Sequence _cueSequence;
+     [SerializeField]    private List<TweenInstance> _cueSequence;
 
         private int _emissionColorID = Shader.PropertyToID("_EmissionColor");
 
@@ -135,8 +132,8 @@ namespace SOSXR.ObjectCue
         private Vector3 _originalScale;
 
         private float _remainingDurationInCueSequence;
-        private Sequence _rescueSequence;
-        private Sequence _returnSequence;
+        //private Sequence _rescueSequence;
+        //private Sequence _returnSequence;
 
         public bool CueIsActive { get; set; }
 
@@ -151,7 +148,6 @@ namespace SOSXR.ObjectCue
 
             set => _remainingDurationInCueSequence = value;
         }
-
 
 
         public void Awake()
@@ -260,7 +256,21 @@ namespace SOSXR.ObjectCue
                 return;
             }
 
-            if (_cueSequence.IsActive()) // Don't start CueSequence if already playing
+            var positionTween = new PositionTween
+            {
+                to = AddedLocalPosition,
+                duration = HalfLoopDuration
+            };
+
+            var rotationTween = new EulerAnglesTween
+            {
+                to =  AddedLocalRotation,
+                duration = HalfLoopDuration
+            };
+            _cueSequence.Add(gameObject.AddTween(positionTween));
+            _cueSequence.Add(gameObject.AddTween(rotationTween));
+
+            if  (_cueSequence != null && !_cueSequence.isPaused) // Don't start CueSequence if already playing
             {
                 Debug.Log("Cue sequence is active, cannot restart cue sequence");
 
@@ -589,4 +599,4 @@ namespace SOSXR.ObjectCue
             }
         }
     }
-}
+}*/
