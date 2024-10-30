@@ -5,7 +5,6 @@
   "description": "A simple utility to cue objects in Unity.",
   "unity": "2021.3",
   "dependencies": {
-    "nl.jeffreylanters.tweens": "https://github.com/mrstruijk/Tweens.git"
   },
   "keywords": [
     "Unity",
