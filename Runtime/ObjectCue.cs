@@ -1,9 +1,8 @@
-/*using System;
-using System.Collections.Generic;
-using Tweens;
+using System;
+using SOSXR.Tweening;
 using UnityEngine;
 using UnityEngine.Events;
-
+/*
 
 namespace SOSXR.ObjectCue
 {
@@ -118,7 +117,7 @@ namespace SOSXR.ObjectCue
         private int _baseColorID = Shader.PropertyToID("_BaseColor");
 
         //private Sequence _cueSequence;
-     [SerializeField]    private List<TweenInstance> _cueSequence;
+        // [SerializeField]    private List<TweenInstance> _cueSequence;
 
         private int _emissionColorID = Shader.PropertyToID("_EmissionColor");
 
@@ -256,46 +255,48 @@ namespace SOSXR.ObjectCue
                 return;
             }
 
-            var positionTween = new PositionTween
-            {
-                to = AddedLocalPosition,
-                duration = HalfLoopDuration
-            };
+            //var positionTween = new PositionTween
+            //{
+            //    to = AddedLocalPosition,
+            //    duration = HalfLoopDuration
+            //};
 
-            var rotationTween = new EulerAnglesTween
-            {
-                to =  AddedLocalRotation,
-                duration = HalfLoopDuration
-            };
-            _cueSequence.Add(gameObject.AddTween(positionTween));
-            _cueSequence.Add(gameObject.AddTween(rotationTween));
+            transform.TweenLocalPosition(AddedLocalPosition, HalfLoopDuration);
 
-            if  (_cueSequence != null && !_cueSequence.isPaused) // Don't start CueSequence if already playing
-            {
-                Debug.Log("Cue sequence is active, cannot restart cue sequence");
+            //var rotationTween = new EulerAnglesTween
+            //{
+            //    to =  AddedLocalRotation,
+            //    duration = HalfLoopDuration
+            //};
 
-                return;
-            }
+            transform.TweenLocalRotation(AddedLocalRotation, HalfLoopDuration);
+            // _cueSequence.Add(gameObject.AddTween(positionTween));
+            // _cueSequence.Add(gameObject.AddTween(rotationTween));
+
+            //if  (_cueSequence != null && !_cueSequence.isPaused) // Don't start CueSequence if already playing
+            //{
+            //    Debug.Log("Cue sequence is active, cannot restart cue sequence");
+            //    return;
+            //}
 
             EventOnStart?.Invoke();
 
-            if (_returnSequence.IsActive()) // Makes sure this CueSequence can always run, even when ReturnSequence is currently active.
+            //if (_returnSequence.IsActive()) // Makes sure this CueSequence can always run, even when ReturnSequence is currently active.
+            //{
+            //    _returnSequence.Kill();//
+            //    CreateGracefulTransitionBetweenReturnSequenceAndCueSequence();
+            //}
+            //else
+            //{
+            if (UseCueSound && PlayHalfWay == false)
             {
-                _returnSequence.Kill();
-
-                CreateGracefulTransitionBetweenReturnSequenceAndCueSequence();
+                PlayCueSound(); // To ensure sound is played at start of loop as well as end.
             }
-            else
-            {
-                if (UseCueSound && PlayHalfWay == false)
-                {
-                    PlayCueSound(); // To ensure sound is played at start of loop as well as end.
-                }
 
-                FireCueEvent();
+            FireCueEvent();
 
-                CreateCueLoop();
-            }
+            CreateCueLoop();
+            //}
         }
 
 
@@ -324,19 +325,24 @@ namespace SOSXR.ObjectCue
 
         public void CreateGracefulTransitionBetweenReturnSequenceAndCueSequence()
         {
-            _rescueSequence = DOTween.Sequence();
+            // _rescueSequence = DOTween.Sequence();
 
             if (Renderers != null && _originalEmissionColors != null && _originalEmissionColors.Length > 0)
             {
                 for (var i = 0; i < _originalEmissionColors.Length; i++)
                 {
-                    _rescueSequence.Insert(0, _materials[i].DOColor(_originalEmissionColors[i], _emissionColorID, GracefulTransitionDuration).SetEase(ReturnCurve));
+                    //_rescueSequence.Insert(0, _materials[i].DOColor(_originalEmissionColors[i], _emissionColorID, GracefulTransitionDuration).SetEase(ReturnCurve));
+                    _materials[i].TweenEmission(_originalEmissionColors[i], GracefulTransitionDuration).WithEase(ReturnCurve);
                 }
             }
 
-            _rescueSequence.Insert(0, transform.DOScale(_originalScale, GracefulTransitionDuration).SetEase(ReturnCurve));
-            _rescueSequence.Insert(0, transform.DOLocalMove(_originalPosition, GracefulTransitionDuration).SetEase(ReturnCurve));
-            _rescueSequence.Insert(0, transform.DOLocalRotate(_originalRotation.eulerAngles, GracefulTransitionDuration).SetEase(ReturnCurve));
+            transform.TweenScale(_originalScale, GracefulTransitionDuration).WithEase(ReturnCurve);
+            transform.TweenLocalPosition(_originalPosition, GracefulTransitionDuration).WithEase(ReturnCurve);
+            transform.TweenLocalRotation(_originalRotation.eulerAngles, GracefulTransitionDuration).WithEase(ReturnCurve).OnComplete += CreateCueLoop;
+
+            // _rescueSequence.Insert(0, transform.DOScale(_originalScale, GracefulTransitionDuration).SetEase(ReturnCurve));
+            // _rescueSequence.Insert(0, transform.DOLocalMove(_originalPosition, GracefulTransitionDuration).SetEase(ReturnCurve));
+            // _rescueSequence.Insert(0, transform.DOLocalRotate(_originalRotation.eulerAngles, GracefulTransitionDuration).SetEase(ReturnCurve));
 
             _rescueSequence.onComplete += CreateCueLoop;
         }
@@ -360,14 +366,15 @@ namespace SOSXR.ObjectCue
             if (_audioSource == null && GetComponent<AudioSource>() == null)
             {
                 _audioSource = gameObject.AddComponent<AudioSource>();
-                _audioSource.spatialize = true;
-                _audioSource.spatialBlend = 1;
-                _audioSource.minDistance = 0;
-                _audioSource.maxDistance = 5;
-                _audioSource.rolloffMode = AudioRolloffMode.Linear;
-                _audioSource.playOnAwake = false;
-                _audioSource.loop = false;
             }
+
+            _audioSource.spatialize = true;
+            _audioSource.spatialBlend = 1;
+            _audioSource.minDistance = 0;
+            _audioSource.maxDistance = 5;
+            _audioSource.rolloffMode = AudioRolloffMode.Linear;
+            _audioSource.playOnAwake = false;
+            _audioSource.loop = false;
 
             _audioSource.clip = clip;
             _audioSource.Play();
@@ -599,5 +606,5 @@ namespace SOSXR.ObjectCue
             }
         }
     }
-}*/
-
+}
+*/
