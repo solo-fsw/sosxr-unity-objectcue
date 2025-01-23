@@ -16,3 +16,7 @@
 2. Click on the `+` button and select `Add package from git URL...`. 
 3. Paste the URL of the [Tweening Library](https://github.com/solo-fsw/sosxr-unity-tweening.git)
 4. Press `Add`.
+
+
+Requires EditorTools
+Requires DOTween (free or pro)

@@ -1,12 +1,13 @@
-using System;
-using DG.Tweening;
+ /*using System;
+using SOSXR.Tweening;
 using UnityEngine;
 using UnityEngine.Events;
+
 
 namespace SOSXR.ObjectCue
 {
     [Serializable]
-    public class ObjectCue : MonoBehaviour
+    public class ObjectCueOld : MonoBehaviour
     {
         [Header("AUTOSTART")]
         [Space(10)]
@@ -99,6 +100,8 @@ namespace SOSXR.ObjectCue
         [Tooltip("For if this Cue needs to communicate with some kind of event, e.g. for UXF to log start and stop times.")]
         public bool FireCueStartEvent;
         public bool FireEventOnlyOnce;
+        public UnityEvent StartCueEvent;
+        public UnityEvent StopCueEvent;
 
 
         [Space(10)]
@@ -108,13 +111,13 @@ namespace SOSXR.ObjectCue
 
         [Header("PREVENT STARTING CUE")]
         public bool PreventStartingCue;
-        public UnityEvent CueEvent;
 
         private AudioSource _audioSource;
 
         private int _baseColorID = Shader.PropertyToID("_BaseColor");
 
-        private Sequence _cueSequence;
+        //private Sequence _cueSequence;
+        // [SerializeField]    private List<TweenInstance> _cueSequence;
 
         private int _emissionColorID = Shader.PropertyToID("_EmissionColor");
 
@@ -128,8 +131,8 @@ namespace SOSXR.ObjectCue
         private Vector3 _originalScale;
 
         private float _remainingDurationInCueSequence;
-        private Sequence _rescueSequence;
-        private Sequence _returnSequence;
+        //private Sequence _rescueSequence;
+        //private Sequence _returnSequence;
 
         public bool CueIsActive { get; set; }
 
@@ -143,14 +146,6 @@ namespace SOSXR.ObjectCue
             get => SetReturnDuration ? ReturnDuration : _remainingDurationInCueSequence;
 
             set => _remainingDurationInCueSequence = value;
-        }
-
-        public bool IsValid { get; private set; }
-
-
-        public void OnValidate()
-        {
-            IsValid = true;
         }
 
 
@@ -260,34 +255,48 @@ namespace SOSXR.ObjectCue
                 return;
             }
 
-            if (_cueSequence.IsActive()) // Don't start CueSequence if already playing
-            {
-                Debug.Log("Cue sequence is active, cannot restart cue sequence");
+            //var positionTween = new PositionTween
+            //{
+            //    to = AddedLocalPosition,
+            //    duration = HalfLoopDuration
+            //};
 
-                return;
-            }
+            transform.TweenLocalPosition(AddedLocalPosition, HalfLoopDuration);
 
-            Debug.Log("Starting cue");
+            //var rotationTween = new EulerAnglesTween
+            //{
+            //    to =  AddedLocalRotation,
+            //    duration = HalfLoopDuration
+            //};
+
+            transform.TweenLocalRotation(AddedLocalRotation, HalfLoopDuration);
+            // _cueSequence.Add(gameObject.AddTween(positionTween));
+            // _cueSequence.Add(gameObject.AddTween(rotationTween));
+
+            //if  (_cueSequence != null && !_cueSequence.isPaused) // Don't start CueSequence if already playing
+            //{
+            //    Debug.Log("Cue sequence is active, cannot restart cue sequence");
+            //    return;
+            //}
 
             EventOnStart?.Invoke();
 
-            if (_returnSequence.IsActive()) // Makes sure this CueSequence can always run, even when ReturnSequence is currently active.
+            //if (_returnSequence.IsActive()) // Makes sure this CueSequence can always run, even when ReturnSequence is currently active.
+            //{
+            //    _returnSequence.Kill();//
+            //    CreateGracefulTransitionBetweenReturnSequenceAndCueSequence();
+            //}
+            //else
+            //{
+            if (UseCueSound && PlayHalfWay == false)
             {
-                _returnSequence.Kill();
-
-                CreateGracefulTransitionBetweenReturnSequenceAndCueSequence();
+                PlayCueSound(); // To ensure sound is played at start of loop as well as end.
             }
-            else
-            {
-                if (UseCueSound && PlayHalfWay == false)
-                {
-                    PlayCueSound(); // To ensure sound is played at start of loop as well as end.
-                }
 
-                FireCueEvent();
+            FireCueEvent();
 
-                CreateCueLoop();
-            }
+            CreateCueLoop();
+            //}
         }
 
 
@@ -303,12 +312,12 @@ namespace SOSXR.ObjectCue
                 return;
             }
 
-            if (CueEvent == null)
+            if (StartCueEvent == null)
             {
                 return;
             }
 
-            CueEvent?.Invoke();
+            StartCueEvent?.Invoke();
 
             _eventFired = true;
         }
@@ -316,21 +325,26 @@ namespace SOSXR.ObjectCue
 
         public void CreateGracefulTransitionBetweenReturnSequenceAndCueSequence()
         {
-            _rescueSequence = DOTween.Sequence();
+            // _rescueSequence = DOTween.Sequence();
 
             if (Renderers != null && _originalEmissionColors != null && _originalEmissionColors.Length > 0)
             {
                 for (var i = 0; i < _originalEmissionColors.Length; i++)
                 {
-                    _rescueSequence.Insert(0, _materials[i].DOColor(_originalEmissionColors[i], _emissionColorID, GracefulTransitionDuration).SetEase(ReturnCurve));
+                    //_rescueSequence.Insert(0, _materials[i].DOColor(_originalEmissionColors[i], _emissionColorID, GracefulTransitionDuration).SetEase(ReturnCurve));
+                    _materials[i].TweenEmission(_originalEmissionColors[i], GracefulTransitionDuration).WithEase(ReturnCurve);
                 }
             }
 
-            _rescueSequence.Insert(0, transform.DOScale(_originalScale, GracefulTransitionDuration).SetEase(ReturnCurve));
-            _rescueSequence.Insert(0, transform.DOLocalMove(_originalPosition, GracefulTransitionDuration).SetEase(ReturnCurve));
-            _rescueSequence.Insert(0, transform.DOLocalRotate(_originalRotation.eulerAngles, GracefulTransitionDuration).SetEase(ReturnCurve));
+            transform.TweenScale(_originalScale, GracefulTransitionDuration).WithEase(ReturnCurve);
+            transform.TweenLocalPosition(_originalPosition, GracefulTransitionDuration).WithEase(ReturnCurve);
+            transform.TweenLocalRotation(_originalRotation.eulerAngles, GracefulTransitionDuration).WithEase(ReturnCurve).OnComplete += CreateCueLoop;
 
-            _rescueSequence.onComplete += CreateCueLoop;
+            // _rescueSequence.Insert(0, transform.DOScale(_originalScale, GracefulTransitionDuration).SetEase(ReturnCurve));
+            // _rescueSequence.Insert(0, transform.DOLocalMove(_originalPosition, GracefulTransitionDuration).SetEase(ReturnCurve));
+            // _rescueSequence.Insert(0, transform.DOLocalRotate(_originalRotation.eulerAngles, GracefulTransitionDuration).SetEase(ReturnCurve));
+
+            // _rescueSequence.onComplete += CreateCueLoop;
         }
 
 
@@ -352,14 +366,15 @@ namespace SOSXR.ObjectCue
             if (_audioSource == null && GetComponent<AudioSource>() == null)
             {
                 _audioSource = gameObject.AddComponent<AudioSource>();
-                _audioSource.spatialize = true;
-                _audioSource.spatialBlend = 1;
-                _audioSource.minDistance = 0;
-                _audioSource.maxDistance = 5;
-                _audioSource.rolloffMode = AudioRolloffMode.Linear;
-                _audioSource.playOnAwake = false;
-                _audioSource.loop = false;
             }
+
+            _audioSource.spatialize = true;
+            _audioSource.spatialBlend = 1;
+            _audioSource.minDistance = 0;
+            _audioSource.maxDistance = 5;
+            _audioSource.rolloffMode = AudioRolloffMode.Linear;
+            _audioSource.playOnAwake = false;
+            _audioSource.loop = false;
 
             _audioSource.clip = clip;
             _audioSource.Play();
@@ -451,7 +466,6 @@ namespace SOSXR.ObjectCue
                 return;
             }
 
-            Debug.Log("Starting return sequence");
 
             if (_cueSequence.IsActive() == false) // Return sequence can only start if the original CueSequence is currently playing
             {
@@ -463,7 +477,6 @@ namespace SOSXR.ObjectCue
             if (_returnSequence.IsActive()) // Do not restart the ReturnSequence if already running.
             {
                 Debug.Log("Cuesequence is active, cannot restart return sequence");
-
 
                 return;
             }
@@ -594,3 +607,5 @@ namespace SOSXR.ObjectCue
         }
     }
 }
+*/
+

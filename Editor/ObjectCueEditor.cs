@@ -1,11 +1,12 @@
-/*using UnityEditor;
+using SOSXR.EditorTools;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Events;
 
 
 namespace SOSXR.ObjectCue
 {
-    [CustomEditor(typeof(ObjectCue))]
+    // [CustomEditor(typeof(ObjectCue))]
     [CanEditMultipleObjects]
     public class ObjectCueEditor : EditorGUIHelpers
     {
@@ -266,7 +267,7 @@ namespace SOSXR.ObjectCue
             CreateToggleProperty(nameof(_target.FireEventOnlyOnce));
 
             const string toolTip15 = "For if this Cue needs to communicate with some kind of event, e.g. for UXF to log start and stop times.";
-            CreateObjectField(nameof(_target.StartCueEvent), typeof(UnityEvent), toolTip15);
+            CreateObjectField(nameof(_target.CueEvent), typeof(UnityEvent), toolTip15);
         }
 
 
@@ -276,5 +277,4 @@ namespace SOSXR.ObjectCue
             CreatePropertyField(nameof(_target.EventOnStop));
         }
     }
-}*/
-
+}

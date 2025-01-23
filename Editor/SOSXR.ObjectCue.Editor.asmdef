@@ -2,7 +2,8 @@
   "name": "SOSXR.ObjectCue.Editor",
   "rootNamespace": "",
   "references": [
-    "GUID:202ffca4b5e124a1db86736e1fde0c1d"
+    "GUID:202ffca4b5e124a1db86736e1fde0c1d",
+    "GUID:68db50dc80037431a8086e002c380c1f"
   ],
   "includePlatforms": [
     "Editor"
