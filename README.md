@@ -18,5 +18,5 @@
 4. Press `Add`.
 
 
-Requires EditorTools
 Requires DOTween (free or pro)
+
