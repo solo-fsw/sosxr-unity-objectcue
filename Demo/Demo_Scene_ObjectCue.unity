@@ -390,14 +390,14 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 7228327962436842266, guid: 38b80dc7945a048d6813d5c03667055e, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 2320083922617241931}
+      addedObject: {fileID: 2320083922617241936}
   m_SourcePrefab: {fileID: 100100000, guid: 38b80dc7945a048d6813d5c03667055e, type: 3}
 --- !u!1 &2320083922617241930 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7228327962436842266, guid: 38b80dc7945a048d6813d5c03667055e, type: 3}
   m_PrefabInstance: {fileID: 2320083922617241929}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2320083922617241931
+--- !u!114 &2320083922617241936
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -409,7 +409,179 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 810ff01b180a4522a38c33d58a66f1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ScaleTo: 1.5
+  AutoStart: 1
+  StartDelay: 0
+  CueLoopDuration: 2.5
+  NumberOfLoops: -1
+  GracefulTransitionDuration: 0.5
+  ReturnDurationType: 0
+  ReturnDuration: 1
+  ReturnCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.99
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  AddedLocalPosition: {x: 1, y: 1, z: 1}
+  PositionCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  AddedLocalRotation: {x: 1, y: 90, z: 0}
+  RotationCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  AddedLocalScale: {x: 1, y: 1, z: 1}
+  ScaleCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  CueClip: {fileID: 0}
+  PlayHalfWay: 0
+  StopClip: {fileID: 0}
+  UseColor: 0
+  DesiredColor: {r: 1, g: 1, b: 1, a: 1}
+  ColorCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0.05
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  UseEmission: 0
+  SetBaseEmissionColor: 0
+  BaseEmissionColor: {r: 0, g: 0, b: 0, a: 1}
+  DesiredEmissionColor: {r: 1, g: 1, b: 1, a: 1}
+  EmissionCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0.05
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.35
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  UseRenderer: 1
+  Renderers: []
+  Materials: []
+  EventOnStart:
+    m_PersistentCalls:
+      m_Calls: []
+  EventOnStop:
+    m_PersistentCalls:
+      m_Calls: []
+  PreventStartingCue: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

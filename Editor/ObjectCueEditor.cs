@@ -1,7 +1,6 @@
 using SOSXR.EditorTools;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Events;
 
 
 namespace SOSXR.ObjectCue
@@ -36,7 +35,6 @@ namespace SOSXR.ObjectCue
 
             DefaultVerticalBoxedLayout(DrawColorProperties);
             DefaultVerticalBoxedLayout(DrawEmissionProperties);
-            DefaultVerticalBoxedLayout(DrawEventProperties);
 
             DefaultVerticalBoxedLayout(DrawUnityEventProperties);
 
@@ -75,11 +73,6 @@ namespace SOSXR.ObjectCue
 
         private void DrawLoopingProperties()
         {
-            if (!CreateHeaderToggle(nameof(_target.ChangeLooping), "CHANGE LOOPING SETTINGS"))
-            {
-                return;
-            }
-
             const string toolTip1 = "Loop duration in seconds (this is a full loop, so including the return to start values)";
             CreateFloatSliderProperty(nameof(_target.CueLoopDuration), toolTip1, 0.1f);
 
@@ -93,10 +86,7 @@ namespace SOSXR.ObjectCue
 
         private void DrawReturnProperties()
         {
-            if (!CreateHeaderToggle(nameof(_target.SetReturnDuration), "RETURN"))
-            {
-                return;
-            }
+            CreateEnumField(nameof(_target.ReturnDurationType), typeof(ReturnDurationType), "Return Duration Type");
 
             const string toolTip5 = "Return duration in seconds: Once all loops are done / looping in stopped, how long does it take to transition back to original / starting values?";
             CreateFloatSliderProperty(nameof(_target.ReturnDuration), toolTip5, 0.1f);
@@ -108,11 +98,6 @@ namespace SOSXR.ObjectCue
 
         private void DrawPositionProperties()
         {
-            if (!CreateHeaderToggle(nameof(_target.UsePosition), "LOCAL POSITION SETTINGS"))
-            {
-                return;
-            }
-
             CreateVector3Field(nameof(_target.AddedLocalPosition));
             const string toolTip7 = "A returnCurve starting low (0,0) and ending high (1, 1f) seems to work well.";
             CreateAnimationCurveField(nameof(_target.PositionCurve), toolTip7);
@@ -121,11 +106,6 @@ namespace SOSXR.ObjectCue
 
         private void DrawRotationProperties()
         {
-            if (!CreateHeaderToggle(nameof(_target.UseRotation), "LOCAL ROTATION SETTINGS"))
-            {
-                return;
-            }
-
             CreateVector3Field(nameof(_target.AddedLocalRotation));
 
             const string toolTip8 = "A returnCurve starting low (0,0) and ending high (1, 1f) seems to work well.";
@@ -135,12 +115,7 @@ namespace SOSXR.ObjectCue
 
         private void DrawScaleProperties()
         {
-            if (!CreateHeaderToggle(nameof(_target.UseScale), "LOCAL SCALE SETTINGS"))
-            {
-                return;
-            }
-
-            CreateVector3Field(nameof(_target.AddedScale));
+            CreateVector3Field(nameof(_target.AddedLocalScale));
 
             const string toolTip9 = "A returnCurve starting low (0,0) and ending high (1, 1f) seems to work well.";
             CreateAnimationCurveField(nameof(_target.ScaleCurve), toolTip9);
@@ -149,10 +124,7 @@ namespace SOSXR.ObjectCue
 
         private void DrawStartSoundProperties()
         {
-            if (!CreateHeaderToggle(nameof(_target.UseCueSound), "CUE SOUND SETTINGS"))
-            {
-                return;
-            }
+         
 
             // const string toolTip10 = "This sound will be played at each 'halfway-point' of the loop: at start, once reached max values, upon returning to original / starting values. \n" +
             //                          "It will not be played at final rest (upon reaching origianl starting values, once loops are done / stopped).";
@@ -165,10 +137,7 @@ namespace SOSXR.ObjectCue
 
         private void DrawStopSoundProperties()
         {
-            if (!CreateHeaderToggle(nameof(_target.UseStopSound), "STOP SOUND SETTINGS"))
-            {
-                return;
-            }
+          
 
             // const string toolTip11 = "Sound that will be played at very last reaching of the original values, at the very end of all the loops.";
 
@@ -254,20 +223,6 @@ namespace SOSXR.ObjectCue
             CreateColorField(nameof(_target.DesiredEmissionColor), true, toolTip16);
 
             CreateAnimationCurveField(nameof(_target.EmissionCurve));
-        }
-
-
-        private void DrawEventProperties()
-        {
-            if (!CreateHeaderToggle(nameof(_target.FireCueStartEvent), "EVENT SETTINGS"))
-            {
-                return;
-            }
-
-            CreateToggleProperty(nameof(_target.FireEventOnlyOnce));
-
-            const string toolTip15 = "For if this Cue needs to communicate with some kind of event, e.g. for UXF to log start and stop times.";
-            CreateObjectField(nameof(_target.CueEvent), typeof(UnityEvent), toolTip15);
         }
 
 

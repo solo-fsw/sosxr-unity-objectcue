@@ -2,9 +2,18 @@ using System;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.Serialization;
+
 
 namespace SOSXR.ObjectCue
 {
+    public enum ReturnDurationType
+    {
+        RemainingTimeInCueSequence,
+        CustomDuration
+    }
+
+
     [Serializable]
     public class ObjectCue : MonoBehaviour
     {
@@ -13,21 +22,19 @@ namespace SOSXR.ObjectCue
         public bool AutoStart;
         public float StartDelay = 5f;
 
-
         [Header("LOOPING AND RETURN")]
-        [Space(10)]
-        public bool ChangeLooping;
         [Tooltip("Loop duration in seconds (this is a full loop, so including the return to start values)")]
         [Range(0.1f, 10f)] public float CueLoopDuration = 2.5f;
 
         [Tooltip("The amount of times this loop should repeat. -1 is infinite, 0 is do not loop")]
-        [Range(-1, 10)] public int NumberOfLoops = -1;
+        [Range(-1, 100)] public int NumberOfLoops = -1;
 
         [Tooltip("In seconds. In case ReturnSequence is active when CueSequence is called again, this is the duration to which the object will transition back to original values, prior to starting new CueSequence")]
-        [Range(0.1f, 3f)] public float GracefulTransitionDuration = 0.5f;
+        [Range(0.1f, 5f)] public float GracefulTransitionDuration = 0.5f;
 
-        [Tooltip("If false, the remaining time in the running CueSequence will be used as the duration for which the ReturnSequence runs for.")]
-        public bool SetReturnDuration;
+        [Tooltip("")]
+        public ReturnDurationType ReturnDurationType;
+
 
         [Tooltip("Return duration in seconds: Once all loops are done / looping in stopped, how long does it take to transition back to original / starting values?")]
         [Range(0.1f, 10f)] public float ReturnDuration = 1f;
@@ -38,37 +45,32 @@ namespace SOSXR.ObjectCue
 
         [Header("LOCAL POSITION SETTINGS")]
         [Space(10)]
-        public bool UsePosition;
-        public Vector3 AddedLocalPosition = new(0f, 0f, 0f);
+        public Vector3 AddedLocalPosition;
         public AnimationCurve PositionCurve = new(new Keyframe(0, 0), new Keyframe(1, 1));
 
 
         [Header("LOCAL ROTATION SETTINGS")]
         [Space(10)]
-        public bool UseRotation;
-        public Vector3 AddedLocalRotation = new(0f, 0f, 0f);
+        public Vector3 AddedLocalRotation;
         public AnimationCurve RotationCurve = new(new Keyframe(0, 0), new Keyframe(1, 1));
 
 
+        [FormerlySerializedAs("AddedScale")]
         [Header("SCALE SETTINGS")]
         [Space(10)]
-        public bool UseScale;
-        public Vector3 AddedScale = new(0f, 0f, 0f);
+        public Vector3 AddedLocalScale;
         public AnimationCurve ScaleCurve = new(new Keyframe(0, 0), new Keyframe(1, 1));
 
 
         [Header("AUDIO SETTINGS")]
         [Space(10)]
-        public bool UseCueSound;
         public AudioClip CueClip;
         [Tooltip("This sound will be played at each 'halfway-point' of the loop: at start, once reached max values, upon returning to original / starting values. It will not be played at final rest (upon reaching origianl starting values, once loops are done / stopped).")]
         public bool PlayHalfWay;
 
-        public bool UseStopSound;
         [Tooltip("Sound that will be played at very last reaching of the original values, at the very end of all the loops.")]
         public AudioClip StopClip;
-
-
+        
         [Header("COLOR SETTINGS")]
         [Space(10)]
         public bool UseColor;
@@ -94,13 +96,6 @@ namespace SOSXR.ObjectCue
         public Renderer[] Renderers = { };
         public Material[] Materials;
 
-        [Header("EVENT SETTINGS")]
-        [Space(10)]
-        [Tooltip("For if this Cue needs to communicate with some kind of event, e.g. for UXF to log start and stop times.")]
-        public bool FireCueStartEvent;
-        public bool FireEventOnlyOnce;
-
-
         [Space(10)]
         [Header("UNITY EVENTS")]
         public UnityEvent EventOnStart;
@@ -108,8 +103,7 @@ namespace SOSXR.ObjectCue
 
         [Header("PREVENT STARTING CUE")]
         public bool PreventStartingCue;
-        public UnityEvent CueEvent;
-
+        
         private AudioSource _audioSource;
 
         private int _baseColorID = Shader.PropertyToID("_BaseColor");
@@ -140,31 +134,17 @@ namespace SOSXR.ObjectCue
 
         public float ReturnSequenceDuration
         {
-            get => SetReturnDuration ? ReturnDuration : _remainingDurationInCueSequence;
+            get => ReturnDurationType == ReturnDurationType.RemainingTimeInCueSequence ? _remainingDurationInCueSequence : ReturnDuration;
 
             set => _remainingDurationInCueSequence = value;
         }
-
-        public bool IsValid { get; private set; }
-
+        
 
         public void OnValidate()
         {
-            IsValid = true;
-        }
-
-
-        public void Awake()
-        {
-            FindMeshRenderersOnComponentOrChildren();
-        }
-
-
-        public void FindMeshRenderersOnComponentOrChildren()
-        {
             Renderers ??= GetComponentsInChildren<Renderer>();
         }
-
+        
 
         public void Start()
         {
@@ -279,38 +259,13 @@ namespace SOSXR.ObjectCue
             }
             else
             {
-                if (UseCueSound && PlayHalfWay == false)
+                if (PlayHalfWay == false)
                 {
                     PlayCueSound(); // To ensure sound is played at start of loop as well as end.
                 }
 
-                FireCueEvent();
-
                 CreateCueLoop();
             }
-        }
-
-
-        public void FireCueEvent()
-        {
-            if (FireCueStartEvent == false)
-            {
-                return;
-            }
-
-            if (FireEventOnlyOnce && _eventFired)
-            {
-                return;
-            }
-
-            if (CueEvent == null)
-            {
-                return;
-            }
-
-            CueEvent?.Invoke();
-
-            _eventFired = true;
         }
 
 
@@ -336,6 +291,11 @@ namespace SOSXR.ObjectCue
 
         public void PlayCueSound()
         {
+            if (CueClip == null)
+            {
+                return;
+            }
+
             PlayClipAtPoint(CueClip);
         }
 
@@ -377,29 +337,29 @@ namespace SOSXR.ObjectCue
 
             CueIsActive = true;
 
-            if (UsePosition)
+            if (AddedLocalPosition != Vector3.zero)
             {
                 var pos = _originalPosition + AddedLocalPosition;
                 _cueSequence.Insert(0, transform.DOLocalMove(pos, HalfLoopDuration).SetEase(PositionCurve));
             }
 
-            if (UseRotation)
+            if (AddedLocalRotation != Vector3.zero)
             {
                 var rot = _originalRotation.eulerAngles + AddedLocalRotation;
                 _cueSequence.Insert(0, transform.DOLocalRotate(rot, HalfLoopDuration).SetEase(RotationCurve));
             }
 
-            if (UseScale)
+            if (AddedLocalScale != Vector3.zero)
             {
-                var scale = _originalScale + AddedScale;
+                var scale = _originalScale + AddedLocalScale;
                 _cueSequence.Insert(0, transform.DOScale(scale, HalfLoopDuration).SetEase(ScaleCurve));
             }
 
-            if (UseCueSound && PlayHalfWay)
+            if (PlayHalfWay)
             {
                 _cueSequence.InsertCallback(HalfLoopDuration / 2, PlayCueSound);
             }
-            else if (UseCueSound && !PlayHalfWay)
+            else
             {
                 _cueSequence.OnStepComplete(PlayCueSound);
             }
@@ -430,10 +390,12 @@ namespace SOSXR.ObjectCue
 
         public void RemoveAudioCueFromFinalLoop(int loops)
         {
-            if (_cueSequence.CompletedLoops() == loops - 1)
+            if (_cueSequence.CompletedLoops() != loops - 1)
             {
-                _cueSequence.OnStepComplete(null); // Methods like these clear all previous calls. Use lowerCase if you want to add.
+                return;
             }
+
+            _cueSequence.OnStepComplete(null); // Methods like these clear all previous calls. Use lowerCase if you want to add.
         }
 
 
@@ -464,7 +426,6 @@ namespace SOSXR.ObjectCue
             {
                 Debug.Log("Cuesequence is active, cannot restart return sequence");
 
-
                 return;
             }
 
@@ -489,17 +450,17 @@ namespace SOSXR.ObjectCue
 
             CueIsActive = false;
 
-            if (UsePosition)
+            if (AddedLocalPosition != Vector3.zero)
             {
                 _returnSequence.Insert(0, transform.DOLocalMove(_originalPosition, ReturnSequenceDuration).SetEase(ReturnCurve));
             }
 
-            if (UseRotation)
+            if (AddedLocalRotation != Vector3.zero)
             {
                 _returnSequence.Insert(0, transform.DOLocalRotate(_originalRotation.eulerAngles, ReturnSequenceDuration).SetEase(ReturnCurve));
             }
 
-            if (UseScale)
+            if (AddedLocalScale != Vector3.zero)
             {
                 _returnSequence.Insert(0, transform.DOScale(_originalScale, ReturnSequenceDuration).SetEase(ReturnCurve));
             }
@@ -520,10 +481,7 @@ namespace SOSXR.ObjectCue
                 }
             }
 
-            if (UseStopSound)
-            {
-                _returnSequence.onComplete += PlayStopSound;
-            }
+            _returnSequence.onComplete += PlayStopSound;
 
             _returnSequence.onComplete += ApplyObjectOriginalSettings; // Lowercase onComplete allows stacking of methods. Uppercase OnComplete removes previous entries.
 
@@ -533,6 +491,11 @@ namespace SOSXR.ObjectCue
 
         public void PlayStopSound()
         {
+            if (StopClip == null)
+            {
+                return;
+            }
+
             PlayClipAtPoint(StopClip);
         }
 
@@ -548,17 +511,17 @@ namespace SOSXR.ObjectCue
                 }
             }
 
-            if (UseScale)
+            if (AddedLocalScale != Vector3.zero)
             {
                 transform.localScale = _originalScale;
             }
 
-            if (UsePosition)
+            if (AddedLocalPosition != Vector3.zero)
             {
                 transform.localPosition = _originalPosition;
             }
 
-            if (UseRotation)
+            if (AddedLocalRotation != Vector3.zero)
             {
                 transform.localRotation = _originalRotation;
             }
