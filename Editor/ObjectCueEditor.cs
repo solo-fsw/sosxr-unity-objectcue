@@ -124,8 +124,6 @@ namespace SOSXR.ObjectCue
 
         private void DrawStartSoundProperties()
         {
-         
-
             // const string toolTip10 = "This sound will be played at each 'halfway-point' of the loop: at start, once reached max values, upon returning to original / starting values. \n" +
             //                          "It will not be played at final rest (upon reaching origianl starting values, once loops are done / stopped).";
 
@@ -137,8 +135,6 @@ namespace SOSXR.ObjectCue
 
         private void DrawStopSoundProperties()
         {
-          
-
             // const string toolTip11 = "Sound that will be played at very last reaching of the original values, at the very end of all the loops.";
 
             CreatePropertyField(nameof(_target.StopClip));
@@ -155,19 +151,12 @@ namespace SOSXR.ObjectCue
             GUILayout.Space(DefaultSmallSpace);
             GUILayout.BeginVertical(EditorStyles.helpBox);
 
-            CreateToggleProperty(nameof(_target.UseRenderer));
 
-            if (_target.UseRenderer)
-            {
-                const string toolTip13 = "Make sure you manually add all required Renderers, if they're not on this GameObject or one of it's direct children \n" +
-                                         "Will try to find on current GameObject, or direct child of GameObject, if null.";
+            const string toolTip13 = "Make sure you manually add all required Renderers, if they're not on this GameObject or one of it's direct children \n" +
+                                     "Will try to find on current GameObject, or direct child of GameObject, if null.";
 
-                CreatePropertyField(nameof(_target.Renderers), toolTip13);
-            }
-            else
-            {
-                CreatePropertyField(nameof(_target.Materials));
-            }
+            CreatePropertyField(nameof(_target.Renderers), toolTip13);
+
 
             CreateAnimationCurveField(nameof(_target.ColorCurve));
 
@@ -179,32 +168,20 @@ namespace SOSXR.ObjectCue
 
         private void DrawEmissionProperties()
         {
-            if (!CreateHeaderToggle(nameof(_target.UseEmission), "EMISSION SETTINGS"))
-            {
-                return;
-            }
-
             GUILayout.Space(DefaultSmallSpace);
 
             if (!_target.UseColor)
             {
                 GUILayout.BeginVertical(EditorStyles.helpBox);
 
-                CreateToggleProperty(nameof(_target.UseRenderer));
 
-                if (_target.UseRenderer)
-                {
-                    const string toolTip13 = "Make sure you manually add all required Renderers, if they're not on this GameObject or one of it's direct children \n" +
-                                             "Will try to find on current GameObject, or direct child of GameObject, if null. \n" +
-                                             "Make sure that the Global Illumination on Renderer is set to Realtime or None, not to Baked. \n" +
-                                             "Also make sure 'Specular highlights' is enabled!";
+                const string toolTip13 = "Make sure you manually add all required Renderers, if they're not on this GameObject or one of it's direct children \n" +
+                                         "Will try to find on current GameObject, or direct child of GameObject, if null. \n" +
+                                         "Make sure that the Global Illumination on Renderer is set to Realtime or None, not to Baked. \n" +
+                                         "Also make sure 'Specular highlights' is enabled!";
 
-                    CreatePropertyField(nameof(_target.Renderers), toolTip13);
-                }
-                else
-                {
-                    CreatePropertyField(nameof(_target.Materials));
-                }
+                CreatePropertyField(nameof(_target.Renderers), toolTip13);
+
 
                 GUILayout.EndVertical();
             }
@@ -213,16 +190,10 @@ namespace SOSXR.ObjectCue
                                      "Make sure that the Global Illumination on Renderer is set to Realtime or None, not to Baked. \n" +
                                      "Also make sure 'Specular highlights' is enabled!";
 
-            if (CreateToggleProperty(nameof(_target.SetBaseEmissionColor), toolTip14).boolValue)
-            {
-                const string toolTip15 = "Black is shown to work well, because it has 'no emission'. Keep 'intensity' at 0.";
-                CreateColorField(nameof(_target.BaseEmissionColor), true, toolTip15);
-            }
+            //const string toolTip16 = "White works well. No need to set intensity.";
+            //CreateColorField(nameof(_target.DesiredEmissionColor), true, toolTip16);
 
-            const string toolTip16 = "White works well. No need to set intensity.";
-            CreateColorField(nameof(_target.DesiredEmissionColor), true, toolTip16);
-
-            CreateAnimationCurveField(nameof(_target.EmissionCurve));
+           // CreateAnimationCurveField(nameof(_target.EmissionCurve));
         }
 
 
