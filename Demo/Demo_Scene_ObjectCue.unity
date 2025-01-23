@@ -462,7 +462,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 810ff01b180a4522a38c33d58a66f1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  StartDelay: 0
+  StartDelay: -1
   CueLoopDuration: 2.5
   NumberOfLoops: -1
   GracefulTransitionDuration: 0.5
