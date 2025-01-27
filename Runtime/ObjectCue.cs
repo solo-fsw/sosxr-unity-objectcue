@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DG.Tweening;
+using SOSXR.EditorTools;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -18,7 +20,6 @@ namespace SOSXR.ObjectCue
     public class RendererSet
     {
         public Renderer Renderer;
-        public Material SharedMaterial;
         [Space(10)]
         public Color OriginalColor;
         public AnimationCurve ColorCurve = new(new Keyframe(0, 0.05f), new Keyframe(1, 1f));
@@ -37,46 +38,50 @@ namespace SOSXR.ObjectCue
     {
         [Header("AUTOSTART")]
         [Tooltip("In seconds. If -1, the CueSequence will not start automatically.")]
-        [Range(-1f, 10f)] public float StartDelay = -1;
+        [Range(-1f, 10f)] [SerializeField] private float m_startDelay = -1;
+
 
         [Header("LOOPING AND RETURN")]
         [Tooltip("Loop duration in seconds (this is a full loop, so including the return to start values)")]
-        [Range(0.1f, 10f)] public float CueLoopDuration = 2.5f;
+        [Range(0.1f, 10f)] [SerializeField] private float m_cueLoopDuration = 2.5f;
         [Tooltip("The amount of times this loop should repeat. -1 is infinite, 0 is do not loop")]
-        [Range(-1, 100)] public int NumberOfLoops = -1;
+        [Range(-1, 100)] [SerializeField] private int m_numberOfLoops = -1;
         [Tooltip("In seconds. In case ReturnSequence is active when CueSequence is called again, this is the duration to which the object will transition back to original values, prior to starting new CueSequence")]
-        [Range(0.1f, 5f)] public float GracefulTransitionDuration = 0.5f;
-        public ReturnDurationType ReturnDurationType = ReturnDurationType.RemainingTimeInCueSequence;
+        [Range(0.1f, 5f)] [SerializeField] private float m_gracefulTransitionDuration = 0.5f;
+        [SerializeField] private ReturnDurationType m_returnDurationType = ReturnDurationType.RemainingTimeInCueSequence;
         [Tooltip("Return duration in seconds: Once all loops are done / looping in stopped, how long does it take to transition back to original / starting values?")]
-        [Range(0.1f, 10f)] public float CustomReturnDuration = 1f;
+        [Range(0.1f, 10f)] [SerializeField] private float m_customReturnDuration = 1f;
         [Tooltip("A returnCurve starting low (0,0) and ending high (1,0.99f) seems to work well. When final value is set to 1 instead of 0.99f, flickering (in Emission) occurs.")]
-        public AnimationCurve ReturnCurve = new(new Keyframe(0, 0), new Keyframe(1, 0.99f));
+        [SerializeField] private AnimationCurve m_returnCurve = new(new Keyframe(0, 0), new Keyframe(1, 0.99f));
+        [SerializeField] private List<RendererSet> m_renderers = new();
 
-        public List<RendererSet> Renderers = new();
 
         [Header("LOCAL TRANSFORM SETTINGS")]
-        public Vector3 AddedLocalPosition;
-        public AnimationCurve PositionCurve = new(new Keyframe(0, 0), new Keyframe(1, 1));
+        [SerializeField] private Vector3 m_addedLocalPosition;
+        [SerializeField] private AnimationCurve m_positionCurve = new(new Keyframe(0, 0), new Keyframe(1, 1));
 
         [Space(10)]
-        public Vector3 AddedLocalRotation;
-        public AnimationCurve RotationCurve = new(new Keyframe(0, 0), new Keyframe(1, 1));
+        [SerializeField] private Vector3 m_addedLocalRotation;
+        [SerializeField] private AnimationCurve m_rotationCurve = new(new Keyframe(0, 0), new Keyframe(1, 1));
 
         [Space(10)]
-        public Vector3 AddedLocalScale;
-        public AnimationCurve ScaleCurve = new(new Keyframe(0, 0), new Keyframe(1, 1));
+        [SerializeField] private Vector3 m_addedLocalScale;
+        [SerializeField] private AnimationCurve m_scaleCurve = new(new Keyframe(0, 0), new Keyframe(1, 1));
+
 
         [Header("AUDIO SETTINGS")]
         [SerializeField] private AudioSource m_audioSource;
-        public AudioClip CueClip;
+        [SerializeField] private AudioClip m_cueClip;
         [Tooltip("This sound will be played at each 'halfway-point' of the loop: at start, once reached max values, upon returning to original / starting values. It will not be played at final rest (upon reaching origianl starting values, once loops are done / stopped).")]
-        public bool PlayHalfWay;
+        [SerializeField] private AudioClip m_halfWayClip;
         [Tooltip("Sound that will be played at very last reaching of the original values, at the very end of all the loops.")]
-        public AudioClip StopClip;
+        [SerializeField] private AudioClip m_stopClip;
 
         [Header("UNITY EVENTS")]
         public UnityEvent EventOnStart;
         public UnityEvent EventOnStop;
+        [SerializeField] [DisableEditing] private float m_position;
+
 
         private bool _preventStartingCue;
         private int _baseColorID = Shader.PropertyToID("_BaseColor");
@@ -86,19 +91,21 @@ namespace SOSXR.ObjectCue
         private Quaternion _originalRotation;
         private Vector3 _originalScale;
         private float _remainingDurationInCueSequence;
-        private Sequence _rescueSequence;
+        private Sequence _gracefulReturnSequence;
         private Sequence _returnSequence;
-        public bool CueIsActive { get; set; }
-        public float HalfLoopDuration => CueLoopDuration / 2; // DoTween counts one way (from starting values to max values) as 1 loop, whereas I think is more logical to count a loop from 0 to full and back to 0
-        public int TweenNumberOfLoops => NumberOfLoops >= 1 ? NumberOfLoops * 2 : NumberOfLoops; // DoTween counts one way (from 0 to full) as a loop, whereas I think is more logical to count a loop from 0 to full and back to 0
+        private float _halfLoopDuration => m_cueLoopDuration / 2; // DoTween counts one way (from starting values to max values) as 1 loop, whereas I think is more logical to count a loop from 0 to full and back to 0
+        private int _tweenNumberOfLoops => m_numberOfLoops >= 1 ? m_numberOfLoops * 2 : m_numberOfLoops; // DoTween counts one way (from 0 to full) as a loop, whereas I think is more logical to count a loop from 0 to full and back to 0
 
 
-        public float ReturnSequenceDuration
+        private float _returnSequenceDuration
         {
-            get => ReturnDurationType == ReturnDurationType.RemainingTimeInCueSequence ? _remainingDurationInCueSequence : CustomReturnDuration;
+            get => m_returnDurationType == ReturnDurationType.RemainingTimeInCueSequence ? _remainingDurationInCueSequence : m_customReturnDuration;
 
-            private set => _remainingDurationInCueSequence = value;
+            set => _remainingDurationInCueSequence = value;
         }
+
+        public bool PreventCueFromStarting { get; set; }
+        public bool CueIsActive { get; private set; }
 
 
         private void OnValidate()
@@ -111,12 +118,12 @@ namespace SOSXR.ObjectCue
 
         private void GetAudioSource()
         {
-            if (CueClip == null && StopClip == null)
+            if (m_audioSource != null)
             {
                 return;
             }
 
-            if (m_audioSource != null)
+            if (m_cueClip == null && m_halfWayClip == null && m_stopClip == null)
             {
                 return;
             }
@@ -141,28 +148,53 @@ namespace SOSXR.ObjectCue
 
         private void GetRenderers()
         {
-            if (Renderers != null && Renderers.Count != 0)
+            if (m_renderers.Count != 0)
             {
                 return;
             }
 
-            var renderers = GetComponentsInChildren<Renderer>();
+            InitialiseRenderers();
+        }
 
-            foreach (var rend in renderers)
+
+        [ContextMenu(nameof(InitialiseRenderers))]
+        public void InitialiseRenderers()
+        {
+            if (Application.isPlaying)
             {
+                return;
+            }
+
+            var childRenderers = GetComponentsInChildren<Renderer>();
+            m_renderers = new List<RendererSet>();
+
+            if (childRenderers.Length == 0)
+            {
+                Debug.Log("No renderers found in children of: " + name);
+
+                return;
+            }
+
+            foreach (var rend in childRenderers)
+            {
+                m_renderers.Add(new RendererSet());
+                m_renderers[^1].Renderer = rend;
+
+                if (rend.sharedMaterial == null)
+                {
+                    Debug.Log("No sharedMaterial found on: " + rend.name);
+
+                    continue;
+                }
+
+                var baseColor = rend.sharedMaterial.GetColor(_baseColorID);
+                m_renderers[^1].OriginalColor = baseColor;
+                m_renderers[^1].DesiredColor = baseColor;
+
                 var baseEmissive = rend.sharedMaterial.GetColor(_emissionColorID);
                 baseEmissive *= 0;
-                var baseColor = rend.sharedMaterial.GetColor(_baseColorID);
-
-                Renderers?.Add(new RendererSet
-                {
-                    Renderer = rend,
-                    SharedMaterial = rend.sharedMaterial,
-                    OriginalColor = baseColor,
-                    DesiredColor = baseColor,
-                    OriginalEmissionColor = baseEmissive,
-                    DesiredEmissionColor = baseEmissive
-                });
+                m_renderers[^1].OriginalEmissionColor = baseEmissive;
+                m_renderers[^1].DesiredEmissionColor = baseEmissive;
 
                 rend.sharedMaterial.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
                 rend.sharedMaterial.EnableKeyword("_EMISSION");
@@ -182,12 +214,12 @@ namespace SOSXR.ObjectCue
 
         private void OnEnable()
         {
-            if (StartDelay < 0)
+            if (m_startDelay < 0)
             {
                 return;
             }
 
-            Invoke(nameof(StartCue), StartDelay);
+            Invoke(nameof(StartCue), m_startDelay);
         }
 
 
@@ -211,10 +243,19 @@ namespace SOSXR.ObjectCue
         }
 
 
+        private void Update()
+        {
+            if (_cueSequence != null && _cueSequence.IsActive())
+            {
+                m_position = _cueSequence.position;
+            }
+        }
+
+
         [ContextMenu(nameof(StartCue))]
         public void StartCue()
         {
-            if (Application.isPlaying == false)
+            if (!Application.isPlaying)
             {
                 return;
             }
@@ -236,62 +277,17 @@ namespace SOSXR.ObjectCue
             }
             else
             {
-                if (PlayHalfWay == false)
-                {
-                    PlayCueSound(); // To ensure sound is played at start of loop as well as end.
-                }
-
                 CreateCueLoop();
             }
         }
 
 
-        private void CreateGracefulTransitionBetweenReturnSequenceAndCueSequence()
-        {
-            _rescueSequence = DOTween.Sequence();
-
-            for (var i = 0; i < Renderers.Count; i++)
-            {
-                _rescueSequence.Insert(0, Renderers[i].Renderer.material.DOColor(Renderers[i].OriginalColor, _baseColorID, GracefulTransitionDuration).SetEase(ReturnCurve));
-            }
-
-            _rescueSequence.Insert(0, transform.DOScale(_originalScale, GracefulTransitionDuration).SetEase(ReturnCurve));
-            _rescueSequence.Insert(0, transform.DOLocalMove(_originalPosition, GracefulTransitionDuration).SetEase(ReturnCurve));
-            _rescueSequence.Insert(0, transform.DOLocalRotate(_originalRotation.eulerAngles, GracefulTransitionDuration).SetEase(ReturnCurve));
-
-            _rescueSequence.onComplete += CreateCueLoop;
-        }
-
-
-        private void PlayCueSound()
-        {
-            PlayClipAtPoint(CueClip);
-        }
-
-
-        private void PlayClipAtPoint(AudioClip clip)
-        {
-            if (clip == null)
-            {
-                return;
-            }
-
-            if (m_audioSource == null)
-            {
-                Debug.LogWarning("No AudioSource found, cannot play clip: " + clip.name);
-
-                return;
-            }
-
-            m_audioSource.clip = clip;
-            m_audioSource.Play();
-        }
-
-
         private void CreateCueLoop()
         {
-            if (_preventStartingCue)
+            if (PreventCueFromStarting)
             {
+                Debug.Log("PreventStartingCue is active, cannot start cue sequence");
+
                 return;
             }
 
@@ -299,51 +295,48 @@ namespace SOSXR.ObjectCue
 
             CueIsActive = true;
 
-            if (AddedLocalPosition != Vector3.zero)
+            PlayClip(m_cueClip);
+
+            if (m_addedLocalPosition != Vector3.zero)
             {
-                var pos = _originalPosition + AddedLocalPosition;
-                _cueSequence.Insert(0, transform.DOLocalMove(pos, HalfLoopDuration).SetEase(PositionCurve));
+                var pos = _originalPosition + m_addedLocalPosition;
+                _cueSequence.Insert(0, transform.DOLocalMove(pos, _halfLoopDuration).SetEase(m_positionCurve));
             }
 
-            if (AddedLocalRotation != Vector3.zero)
+            if (m_addedLocalRotation != Vector3.zero)
             {
-                var rot = _originalRotation.eulerAngles + AddedLocalRotation;
-                _cueSequence.Insert(0, transform.DOLocalRotate(rot, HalfLoopDuration).SetEase(RotationCurve));
+                var rot = _originalRotation.eulerAngles + m_addedLocalRotation;
+                _cueSequence.Insert(0, transform.DOLocalRotate(rot, _halfLoopDuration).SetEase(m_rotationCurve));
             }
 
-            if (AddedLocalScale != Vector3.zero)
+            if (m_addedLocalScale != Vector3.zero)
             {
-                var scale = _originalScale + AddedLocalScale;
-                _cueSequence.Insert(0, transform.DOScale(scale, HalfLoopDuration).SetEase(ScaleCurve));
+                var scale = _originalScale + m_addedLocalScale;
+                _cueSequence.Insert(0, transform.DOScale(scale, _halfLoopDuration).SetEase(m_scaleCurve));
             }
 
-            if (PlayHalfWay)
-            {
-                _cueSequence.InsertCallback(HalfLoopDuration / 2, PlayCueSound);
-            }
-            else
-            {
-                _cueSequence.OnStepComplete(PlayCueSound);
-            }
+            _cueSequence.InsertCallback(_halfLoopDuration / 2, () => PlayClip(m_halfWayClip));
 
-            foreach (var rend in Renderers)
+            _cueSequence.onStepComplete += () => PlayClip(m_cueClip);
+
+            foreach (var rend in m_renderers.Where(rend => rend.Renderer.sharedMaterial != null))
             {
                 if (rend.DesiredColor != rend.OriginalColor)
                 {
-                    _cueSequence.Insert(0, rend.Renderer.material.DOColor(rend.DesiredColor, _baseColorID, HalfLoopDuration).SetEase(rend.ColorCurve));
+                    _cueSequence.Insert(0, rend.Renderer.sharedMaterial.DOColor(rend.DesiredColor, _baseColorID, _halfLoopDuration).SetEase(rend.ColorCurve));
                 }
 
                 if (rend.DesiredEmissionColor != rend.OriginalEmissionColor)
                 {
-                    _cueSequence.Insert(0, rend.Renderer.material.DOColor(rend.DesiredEmissionColor, _emissionColorID, HalfLoopDuration).SetEase(rend.EmissionCurve));
+                    _cueSequence.Insert(0, rend.Renderer.sharedMaterial.DOColor(rend.DesiredEmissionColor, _emissionColorID, _halfLoopDuration).SetEase(rend.EmissionCurve));
                 }
             }
 
-            _cueSequence.SetLoops(TweenNumberOfLoops, LoopType.Yoyo);
+            _cueSequence.SetLoops(_tweenNumberOfLoops, LoopType.Yoyo);
 
-            _cueSequence.onStepComplete += () => RemoveAudioCueFromFinalLoop(TweenNumberOfLoops);
+            _cueSequence.onStepComplete += () => RemoveAudioCueFromFinalLoop(_tweenNumberOfLoops);
 
-            _cueSequence.onComplete += StartReturnSequence; // Once run out of loops, start the ReturnSequence.
+            _cueSequence.onComplete += StopCue; // Once run out of loops, start the ReturnSequence.
         }
 
 
@@ -358,21 +351,46 @@ namespace SOSXR.ObjectCue
         }
 
 
-        [ContextMenu(nameof(StopCue))]
-        public void StopCue()
+        private void CreateGracefulTransitionBetweenReturnSequenceAndCueSequence()
         {
-            StartReturnSequence();
+            _gracefulReturnSequence = DOTween.Sequence();
+
+            foreach (var rend in m_renderers.Where(rend => rend.Renderer.sharedMaterial != null))
+            {
+                _gracefulReturnSequence.Insert(0, rend.Renderer.sharedMaterial.DOColor(rend.OriginalColor, _baseColorID, m_gracefulTransitionDuration).SetEase(m_returnCurve));
+            }
+
+            _gracefulReturnSequence.Insert(0, transform.DOScale(_originalScale, m_gracefulTransitionDuration).SetEase(m_returnCurve));
+            _gracefulReturnSequence.Insert(0, transform.DOLocalMove(_originalPosition, m_gracefulTransitionDuration).SetEase(m_returnCurve));
+            _gracefulReturnSequence.Insert(0, transform.DOLocalRotate(_originalRotation.eulerAngles, m_gracefulTransitionDuration).SetEase(m_returnCurve));
+
+            _gracefulReturnSequence.onComplete += () => PlayClip(m_cueClip);
         }
 
 
-        private void StartReturnSequence()
+        private void PlayClip(AudioClip clip)
         {
-            if (Application.isPlaying == false)
+            if (clip == null)
             {
                 return;
             }
 
-            if (_cueSequence.IsActive() == false) // Return sequence can only start if the original CueSequence is currently playing
+            GetAudioSource();
+
+            m_audioSource.clip = clip;
+            m_audioSource.Play();
+        }
+
+
+        [ContextMenu(nameof(StopCue))]
+        public void StopCue()
+        {
+            if (!Application.isPlaying)
+            {
+                return;
+            }
+
+            if (!_cueSequence.IsActive()) // Return sequence can only start if the original CueSequence is currently playing
             {
                 Debug.Log("Sequence is not active, cannot start return sequence");
 
@@ -388,48 +406,42 @@ namespace SOSXR.ObjectCue
 
             if (_cueSequence.CompletedLoops() % 2 != 0) // These are all the uneven loops, meaning that they are from max value to original / starting value.
             {
-                ReturnSequenceDuration = HalfLoopDuration - _cueSequence.position; // DoTween always counts the cueSequence.position (duration timer in seconds) up, so in every 1 FULL loop, it counts from 0 to HalfLoopDuration. Therefore getting the corect time to get back to Starting Position is HalfLoopDuration - position
+                _returnSequenceDuration = _halfLoopDuration - _cueSequence.position; // DoTween always counts the cueSequence.position (duration timer in seconds) up, so in every 1 FULL loop, it counts from 0 to HalfLoopDuration. Therefore getting the corect time to get back to Starting Position is HalfLoopDuration - position
             }
             else
             {
-                ReturnSequenceDuration = _cueSequence.position;
+                _returnSequenceDuration = _cueSequence.position;
             }
 
             _cueSequence.Kill();
 
-            BuildReturnSequence();
-        }
-
-
-        private void BuildReturnSequence()
-        {
             _returnSequence = DOTween.Sequence();
 
-            if (AddedLocalPosition != Vector3.zero)
+            if (m_addedLocalPosition != Vector3.zero)
             {
-                _returnSequence.Insert(0, transform.DOLocalMove(_originalPosition, ReturnSequenceDuration).SetEase(ReturnCurve));
+                _returnSequence.Insert(0, transform.DOLocalMove(_originalPosition, _returnSequenceDuration).SetEase(m_returnCurve));
             }
 
-            if (AddedLocalRotation != Vector3.zero)
+            if (m_addedLocalRotation != Vector3.zero)
             {
-                _returnSequence.Insert(0, transform.DOLocalRotate(_originalRotation.eulerAngles, ReturnSequenceDuration).SetEase(ReturnCurve));
+                _returnSequence.Insert(0, transform.DOLocalRotate(_originalRotation.eulerAngles, _returnSequenceDuration).SetEase(m_returnCurve));
             }
 
-            if (AddedLocalScale != Vector3.zero)
+            if (m_addedLocalScale != Vector3.zero)
             {
-                _returnSequence.Insert(0, transform.DOScale(_originalScale, ReturnSequenceDuration).SetEase(ReturnCurve));
+                _returnSequence.Insert(0, transform.DOScale(_originalScale, _returnSequenceDuration).SetEase(m_returnCurve));
             }
 
-            foreach (var rend in Renderers)
+            foreach (var rend in m_renderers.Where(rend => rend.Renderer.sharedMaterial != null))
             {
                 if (rend.DesiredColor != rend.OriginalColor)
                 {
-                    _returnSequence.Insert(0, rend.Renderer.material.DOColor(rend.OriginalColor, _baseColorID, ReturnSequenceDuration).SetEase(ReturnCurve));
+                    _returnSequence.Insert(0, rend.Renderer.sharedMaterial.DOColor(rend.OriginalColor, _baseColorID, _returnSequenceDuration).SetEase(m_returnCurve));
                 }
 
                 if (rend.DesiredEmissionColor != rend.OriginalEmissionColor)
                 {
-                    _returnSequence.Insert(0, rend.Renderer.material.DOColor(rend.OriginalEmissionColor, _emissionColorID, ReturnSequenceDuration).SetEase(ReturnCurve));
+                    _returnSequence.Insert(0, rend.Renderer.sharedMaterial.DOColor(rend.OriginalEmissionColor, _emissionColorID, _returnSequenceDuration).SetEase(m_returnCurve));
                 }
             }
 
@@ -439,47 +451,37 @@ namespace SOSXR.ObjectCue
 
         private void OnReturnComplete()
         {
-            PlayClipAtPoint(StopClip);
+            PlayClip(m_stopClip);
 
             ApplyObjectOriginalSettings();
 
             CueIsActive = false;
+
             EventOnStop?.Invoke();
         }
 
 
         private void ApplyObjectOriginalSettings()
         {
-            foreach (var rend in Renderers)
-            {
-                rend.SharedMaterial.SetColor(_baseColorID, rend.OriginalColor);
-                rend.SharedMaterial.SetColor(_emissionColorID, rend.OriginalEmissionColor);
-            }
-
-            if (AddedLocalScale != Vector3.zero)
+            if (m_addedLocalScale != Vector3.zero)
             {
                 transform.localScale = _originalScale;
             }
 
-            if (AddedLocalPosition != Vector3.zero)
+            if (m_addedLocalPosition != Vector3.zero)
             {
                 transform.localPosition = _originalPosition;
             }
 
-            if (AddedLocalRotation != Vector3.zero)
+            if (m_addedLocalRotation != Vector3.zero)
             {
                 transform.localRotation = _originalRotation;
             }
-        }
 
-
-        public void PreventCueFromStarting(bool prevent, bool stop)
-        {
-            _preventStartingCue = prevent;
-
-            if (prevent && stop)
+            foreach (var rend in m_renderers.Where(rend => rend.Renderer.sharedMaterial != null))
             {
-                StopCue();
+                rend.Renderer.sharedMaterial.SetColor(_baseColorID, rend.OriginalColor);
+                rend.Renderer.sharedMaterial.SetColor(_emissionColorID, rend.OriginalEmissionColor);
             }
         }
 
@@ -491,9 +493,9 @@ namespace SOSXR.ObjectCue
                 _cueSequence.Kill();
             }
 
-            if (_rescueSequence.IsActive())
+            if (_gracefulReturnSequence.IsActive())
             {
-                _rescueSequence.Kill();
+                _gracefulReturnSequence.Kill();
             }
 
             if (_returnSequence.IsActive())

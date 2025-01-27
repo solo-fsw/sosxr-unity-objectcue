@@ -19,6 +19,16 @@ namespace SOSXR.ObjectCue
 
         public override void OnInspectorGUI()
         {
+            if (!Application.isPlaying)
+            {
+                if (GUILayout.Button(nameof(ObjectCue.InitialiseRenderers)))
+                {
+                    _objectCue.InitialiseRenderers();
+                }
+
+                GUILayout.Space(10);
+            }
+
             if (GUILayout.Button(nameof(ObjectCue.StartCue)))
             {
                 _objectCue.StartCue();
@@ -35,7 +45,7 @@ namespace SOSXR.ObjectCue
             }
 
             GUILayout.Space(10);
-            
+
             base.OnInspectorGUI();
         }
     }
