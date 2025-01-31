@@ -1,6 +1,6 @@
 {
   "name": "com.sosxr.objectcue",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "displayName": "Object Cue",
   "description": "A simple utility to cue objects in Unity.",
   "unity": "2021.3",
