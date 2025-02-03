@@ -1,17 +1,17 @@
 {
-    "name": "SOSXR.ObjectCue",
-    "rootNamespace": "",
-    "references": [
-        "GUID:d41c1aea031c24b26a394050e7882053",
-        "GUID:7dbfc0c0f47f74b9780a4e8bbf532ae8"
-    ],
-    "includePlatforms": [],
-    "excludePlatforms": [],
-    "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
-    "autoReferenced": true,
-    "defineConstraints": [],
-    "versionDefines": [],
-    "noEngineReferences": false
+  "name": "SOSXR.ObjectCue",
+  "rootNamespace": "",
+  "references": [
+    "GUID:d41c1aea031c24b26a394050e7882053",
+    "GUID:7dbfc0c0f47f74b9780a4e8bbf532ae8"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
 }
